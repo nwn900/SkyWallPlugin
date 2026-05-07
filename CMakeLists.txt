@@ -10,6 +10,8 @@ set(SOURCES
     src/Physics/SurfaceScanner.cpp
     src/Physics/LocomotionController.cpp
     src/Physics/MagickaCost.cpp
+    src/Animation/AnimationBridge.cpp
+    src/Camera/CameraMediator.cpp
     src/Debug/DebugDraw.cpp
 )
 

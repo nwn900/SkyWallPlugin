@@ -4,6 +4,12 @@
 #include "RE/B/bhkCharProxyController.h"
 #include "RE/A/Actor.h"
 #include "RE/N/NiPoint3.h"
+#include "RE/H/hkpWorld.h"
+#include "RE/H/hkpWorldRayCastInput.h"
+#include "RE/H/hkpWorldRayCastOutput.h"
+#include "RE/H/hkVector4.h"
+#include "RE/T/TESObjectCELL.h"
+#include "RE/B/bhkWorld.h"
 #include "SKSE/SKSE.h"
 
 namespace WP::Physics
@@ -64,6 +70,12 @@ namespace WP::Physics
         ProjectVelocity(player, state, deltaTime);
         ApplyAdhesion(player, state, deltaTime);
         FeedCharacterController(player, state, cfg);
+
+        if (player->IsInMidair())
+        {
+            DetachToAir(player, state);
+            return false;
+        }
 
         return true;
     }
@@ -183,6 +195,78 @@ namespace WP::Physics
     bool LocomotionController::TryJumpAttach(RE::PlayerCharacter* player, Core::AttachState& state,
                                               const Core::RuntimeConfig& cfg)
     {
-        return false;
+        if (!player) return false;
+        if (!player->IsInMidair()) return false;
+
+        auto* controller = GetController(player);
+        if (!controller) return false;
+
+        RE::NiPoint3 currentPos = player->GetPosition();
+
+        RE::NiPoint3 currentVel(
+            controller->outVelocity.quad.m128_f32[0],
+            controller->outVelocity.quad.m128_f32[1],
+            controller->outVelocity.quad.m128_f32[2]
+        );
+
+        RE::NiPoint3 velDir = currentVel;
+        float speed = velDir.Unitize();
+        if (speed < cfg.minAttachSpeed) return false;
+
+        auto* cell = player->GetParentCell();
+        if (!cell) return false;
+        auto* bhkWorld = cell->GetbhkWorld();
+        if (!bhkWorld) return false;
+        auto* hkpWorld = bhkWorld->GetWorld1();
+        if (!hkpWorld) return false;
+
+        float sweepDist = speed * 0.5f;
+        if (sweepDist > cfg.maxAttachDistance) sweepDist = cfg.maxAttachDistance;
+        RE::NiPoint3 predictedPos = currentPos + velDir * sweepDist;
+
+        RE::hkpWorldRayCastInput input;
+        input.from = RE::hkVector4(currentPos);
+        input.to = RE::hkVector4(predictedPos);
+
+        RE::hkpWorldRayCastOutput output;
+        hkpWorld->CastRay(input, output);
+
+        if (!output.HasHit()) return false;
+        if (output.hitFraction < 0.0f || output.hitFraction > 1.0f) return false;
+
+        RE::NiPoint3 hitNormal(
+            output.normal.quad.m128_f32[0],
+            output.normal.quad.m128_f32[1],
+            output.normal.quad.m128_f32[2]
+        );
+        hitNormal.Unitize();
+
+        if (hitNormal.z > 0.55f) return false;
+
+        RE::hkVector4 hitVec = input.from + (input.to - input.from) * RE::hkVector4(output.hitFraction);
+        RE::NiPoint3 hitPoint(
+            hitVec.quad.m128_f32[0],
+            hitVec.quad.m128_f32[1],
+            hitVec.quad.m128_f32[2]
+        );
+
+        static constexpr float CLEARANCE = 30.0f;
+        RE::NiPoint3 attachPos = hitPoint + hitNormal * CLEARANCE;
+        player->SetPosition(attachPos, true);
+
+        float normalComponent = currentVel.Dot(hitNormal);
+        RE::NiPoint3 tangentVel = currentVel - hitNormal * normalComponent;
+        controller->outVelocity = RE::hkVector4(tangentVel);
+
+        Core::SurfaceSample surface;
+        surface.valid = true;
+        surface.normalWS = hitNormal;
+        surface.hitPointWS = hitPoint;
+        surface.distance = output.hitFraction * sweepDist;
+        surface.isCeiling = (hitNormal.z < -0.55f);
+
+        BeginAttach(player, state, surface);
+
+        return true;
     }
 }
