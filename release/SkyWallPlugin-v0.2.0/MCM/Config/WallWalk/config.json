@@ -1,0 +1,46 @@
+{
+  "id": "WallWalk",
+  "name": "Wall Walk",
+  "settings": [
+    {
+      "id": "General",
+      "name": "$General",
+      "items": [
+        { "id": "enabled", "name": "Enable Plugin", "type": "toggle", "default": true },
+        { "id": "hotkey", "name": "Wall-Walk Hotkey", "type": "keymap", "default": 0 },
+        { "id": "disableInCombat", "name": "Disable In Combat", "type": "toggle", "default": true },
+        { "id": "debugLogState", "name": "Log State Changes", "type": "toggle", "default": false }
+      ]
+    },
+    {
+      "id": "Movement",
+      "name": "$Movement",
+      "items": [
+        { "id": "maxAttachDistance", "name": "Attach Distance", "type": "slider", "default": 3000.0, "min": 100.0, "max": 10000.0, "step": 50.0 },
+        { "id": "maxCeilingAttachDistance", "name": "Ceiling Attach Distance", "type": "slider", "default": 3000.0, "min": 100.0, "max": 10000.0, "step": 50.0 },
+        { "id": "minAttachSpeed", "name": "Minimum Attach Speed", "type": "slider", "default": 30.0, "min": 0.0, "max": 500.0, "step": 5.0 },
+        { "id": "adhesionStrength", "name": "Adhesion Strength", "type": "slider", "default": 600.0, "min": 100.0, "max": 3000.0, "step": 50.0 },
+        { "id": "gravityMagnitude", "name": "Gravity Magnitude", "type": "slider", "default": 1000.0, "min": 100.0, "max": 5000.0, "step": 50.0 },
+        { "id": "edgeTransferBlendTime", "name": "Edge Blend Time", "type": "slider", "default": 0.12, "min": 0.02, "max": 1.0, "step": 0.01 },
+        { "id": "detachGraceTime", "name": "Detach Grace Time", "type": "slider", "default": 0.3, "min": 0.05, "max": 2.0, "step": 0.05 }
+      ]
+    },
+    {
+      "id": "Costs",
+      "name": "$Magicka",
+      "items": [
+        { "id": "enableMagickaCost", "name": "Use Magicka Cost", "type": "toggle", "default": false },
+        { "id": "magickaPerSecond", "name": "Magicka Drain Per Second", "type": "slider", "default": 5.0, "min": 0.0, "max": 50.0, "step": 0.5 },
+        { "id": "minMagickaToAttach", "name": "Minimum Magicka To Attach", "type": "slider", "default": 10.0, "min": 0.0, "max": 100.0, "step": 1.0 },
+        { "id": "emptyMagickaGracePeriod", "name": "Grace Period On Empty", "type": "slider", "default": 1.5, "min": 0.0, "max": 5.0, "step": 0.1 }
+      ]
+    },
+    {
+      "id": "Debug",
+      "name": "$Debug",
+      "items": [
+        { "id": "debugDraw", "name": "Debug Draw", "type": "toggle", "default": false }
+      ]
+    }
+  ]
+}
