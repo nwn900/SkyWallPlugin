@@ -11,6 +11,7 @@
 #include "RE/P/PlayerCharacter.h"
 #include "RE/A/Actor.h"
 #include "RE/A/ActorState.h"
+#include "RE/S/SendHUDMessage.h"
 #include "RE/U/UI.h"
 #include "SKSE/SKSE.h"
 
@@ -268,8 +269,11 @@ namespace WP::Core
     void Service::ProcessHotkey()
     {
         _attach.hotkeyArmed = !_attach.hotkeyArmed;
-        SKSE::log::info("WallWalk mode {}", _attach.hotkeyArmed ? "ARMED" : "DISARMED");
         _magicka->Reset();
+        SKSE::log::info("WallWalk mode {}", _attach.hotkeyArmed ? "ARMED" : "DISARMED");
+        RE::SendHUDMessage::ShowHUDMessage(
+            _attach.hotkeyArmed ? "Wall Walk: ARMED" : "Wall Walk: DISARMED",
+            nullptr, true);
     }
 
     void Service::Enable(bool enabled)

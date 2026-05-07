@@ -20,6 +20,7 @@ namespace WP::Physics
     void SurfaceScanner::Initialize()
     {
         _candidates.reserve(8);
+        _wasLogged = false;
         SKSE::log::info("SurfaceScanner: Initialized");
     }
 
@@ -30,16 +31,34 @@ namespace WP::Physics
         outSample.distance = FLT_MAX;
 
         auto* player = RE::PlayerCharacter::GetSingleton();
-        if (!player) return;
+        if (!player)
+        {
+            if (!_wasLogged) { SKSE::log::warn("SurfaceScanner: GetPlayer() is null"); _wasLogged = true; }
+            return;
+        }
 
         auto* cell = player->GetParentCell();
-        if (!cell) return;
+        if (!cell)
+        {
+            if (!_wasLogged) { SKSE::log::warn("SurfaceScanner: GetParentCell() is null"); _wasLogged = true; }
+            return;
+        }
 
         auto* bhkWorld = cell->GetbhkWorld();
-        if (!bhkWorld) return;
+        if (!bhkWorld)
+        {
+            if (!_wasLogged) { SKSE::log::warn("SurfaceScanner: GetbhkWorld() is null"); _wasLogged = true; }
+            return;
+        }
 
         auto* hkpWorld = bhkWorld->GetWorld1();
-        if (!hkpWorld) return;
+        if (!hkpWorld)
+        {
+            if (!_wasLogged) { SKSE::log::warn("SurfaceScanner: GetWorld1() is null"); _wasLogged = true; }
+            return;
+        }
+
+        _wasLogged = false;
 
         RE::NiPoint3 dirNorm = direction;
         dirNorm.Unitize();
@@ -52,8 +71,8 @@ namespace WP::Physics
         RE::hkpWorldRayCastOutput output;
         hkpWorld->CastRay(input, output);
 
-        if (!output.HasHit()) return;
-        if (output.hitFraction < 0.0f || output.hitFraction > 1.0f) return;
+        if (output.hitFraction >= 1.0f)
+            return;
 
         outSample.valid = true;
         outSample.normalWS = HkVecToNi(output.normal);
@@ -75,17 +94,25 @@ namespace WP::Physics
         RE::NiPoint3 pos = player->GetPosition();
         RE::NiPoint3 angle = player->GetAngle();
 
-        RE::NiPoint3 forward(
-            -std::sin(angle.z) * std::cos(angle.x),
-            std::cos(angle.z) * std::cos(angle.x),
-            std::sin(angle.x)
-        );
+        float sx = std::sin(angle.x);
+        float cx = std::cos(angle.x);
+        float sz = std::sin(angle.z);
+        float cz = std::cos(angle.z);
+
+        RE::NiPoint3 forward(-sz * cx, cz * cx, sx);
         forward.Unitize();
 
         RE::NiPoint3 right = forward.UnitCross(_worldUp);
         right.Unitize();
 
-        // Forward probes
+        static int frameCount = 0;
+        if (++frameCount >= 300)
+        {
+            frameCount = 0;
+            SKSE::log::info("[SCAN] pos=({:.1f},{:.1f},{:.1f}) fwd=({:.2f},{:.2f},{:.2f}) armed={}",
+                pos.x, pos.y, pos.z, forward.x, forward.y, forward.z, state.hotkeyArmed);
+        }
+
         for (int i = -1; i <= 1; ++i)
         {
             RE::NiPoint3 dir = forward;
@@ -97,18 +124,27 @@ namespace WP::Physics
             if (s.valid) _candidates.push_back(s);
         }
 
-        // Downward support probe
         {
             Core::SurfaceSample s;
             CastProbe(pos, RE::NiPoint3(0, 0, -1), cfg.maxAttachDistance, s);
             if (s.valid && s.normalWS.z > 0.3f) _candidates.push_back(s);
         }
 
-        // Ceiling probe
         {
             Core::SurfaceSample s;
             CastProbe(pos, RE::NiPoint3(0, 0, 1), cfg.maxCeilingAttachDistance, s);
             if (s.valid) _candidates.push_back(s);
+        }
+
+        if (!_candidates.empty() && frameCount == 0)
+        {
+            SKSE::log::info("[SCAN] Found {} candidates", _candidates.size());
+            for (size_t i = 0; i < _candidates.size() && i < 3; ++i)
+            {
+                auto& s = _candidates[i];
+                SKSE::log::info("[SCAN]   #{}= norm=({:.2f},{:.2f},{:.2f}) dist={:.1f} ceil={}",
+                    i, s.normalWS.x, s.normalWS.y, s.normalWS.z, s.distance, s.isCeiling);
+            }
         }
 
         ClassifySamples();
@@ -116,6 +152,13 @@ namespace WP::Physics
         RE::NiPoint3 inputDir = forward;
         ScoreCandidates(inputDir, state, cfg);
         SelectBest();
+
+        if (_primary.valid && frameCount == 0)
+        {
+            SKSE::log::info("[SCAN] Best: norm=({:.2f},{:.2f},{:.2f}) dist={:.1f} score={:.1f} ceil={}",
+                _primary.normalWS.x, _primary.normalWS.y, _primary.normalWS.z,
+                _primary.distance, _primary.score, _primary.isCeiling);
+        }
 
         return _primary.valid;
     }

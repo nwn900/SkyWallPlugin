@@ -33,5 +33,6 @@ namespace WP::Physics
         std::vector<Core::SurfaceSample> _candidates;
         Core::SurfaceSample _primary;
         RE::NiPoint3 _worldUp{ 0.0f, 0.0f, 1.0f };
+        bool _wasLogged = false;
     };
 }
