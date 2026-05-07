@@ -7,8 +7,8 @@
 
 namespace WP::UI
 {
-    using AddSectionItemFn = void (*)(const char*, void(*)());
-    using SetSectionFn = void (*)(const char*);
+    using RenderFn = void(__stdcall*)();
+    using AddSectionItemFn = void(__cdecl*)(const char*, RenderFn);
 
     static bool IsFrameworkInstalled()
     {
@@ -21,26 +21,6 @@ namespace WP::UI
         if (!mod) return nullptr;
         return reinterpret_cast<AddSectionItemFn>(
             GetProcAddress(mod, "AddSectionItem"));
-    }
-
-    static void SetSection(const char* key)
-    {
-        auto* mod = GetModuleHandleA("SKSEMenuFramework.dll");
-        if (!mod) return;
-        static auto* fn = reinterpret_cast<void(*)(const char*)>(
-            GetProcAddress(mod, "SetSection"));
-        if (!fn)
-        {
-            fn = reinterpret_cast<void(*)(const char*)>(
-                GetProcAddress(mod, "SKSEMenuFramework_SetSection"));
-        }
-        if (fn) fn(key);
-    }
-
-    static void AddSectionItem(const char* path, void(*renderFn)())
-    {
-        auto* addFn = GetAddSectionItem();
-        if (addFn) addFn(path, renderFn);
     }
 
     static void __stdcall RenderGeneral()
@@ -108,13 +88,11 @@ namespace WP::UI
             return;
         }
 
-        SetSection("Wall Walk");
-
         addFn("Wall Walk/General", RenderGeneral);
         addFn("Wall Walk/Movement", RenderMovement);
         addFn("Wall Walk/Magicka", RenderMagicka);
         addFn("Wall Walk/Debug", RenderDebug);
 
-        SKSE::log::info("SKSE Menu Framework: registered 4 menu pages (runtime-linked)");
+        SKSE::log::info("SKSE Menu Framework: registered 4 menu pages");
     }
 }
