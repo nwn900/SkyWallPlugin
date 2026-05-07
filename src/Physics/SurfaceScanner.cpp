@@ -106,7 +106,7 @@ namespace WP::Physics
         right.Unitize();
 
         static int frameCount = 0;
-        if (++frameCount >= 300)
+        if (++frameCount >= 60)
         {
             frameCount = 0;
             SKSE::log::info("[SCAN] pos=({:.1f},{:.1f},{:.1f}) fwd=({:.2f},{:.2f},{:.2f}) armed={}",

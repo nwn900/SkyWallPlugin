@@ -16,6 +16,7 @@ namespace
 
     void FrameHandler()
     {
+        static int callCount = 0;
         static auto lastTime = std::chrono::high_resolution_clock::now();
         auto now = std::chrono::high_resolution_clock::now();
         float dt = std::chrono::duration<float>(now - lastTime).count();
@@ -24,6 +25,15 @@ namespace
         if (dt > 0.0f && dt < 0.5f)
         {
             WP::Core::Service::Get().OnFrame(dt);
+        }
+
+        callCount++;
+        if (callCount == 1 || callCount % 300 == 0)
+        {
+            SKSE::log::info("FrameHandler: call {} dt={:.4f}s armed={} enabled={}",
+                callCount, dt,
+                WP::Core::Service::Get().IsArmed(),
+                WP::Core::Service::Get().IsEnabled());
         }
     }
 
