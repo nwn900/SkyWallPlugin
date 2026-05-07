@@ -5,8 +5,25 @@
 #include "WP/Hooks/InputHandler.h"
 #include "WP/Debug/DebugDraw.h"
 
+#include <chrono>
+
 namespace
 {
+    void FrameUpdate()
+    {
+        static auto lastTime = std::chrono::high_resolution_clock::now();
+        auto now = std::chrono::high_resolution_clock::now();
+        float dt = std::chrono::duration<float>(now - lastTime).count();
+        lastTime = now;
+
+        if (dt > 0.0f && dt < 0.5f)
+        {
+            WP::Core::Service::Get().OnFrame(dt);
+        }
+
+        SKSE::GetTaskInterface()->AddTask(FrameUpdate);
+    }
+
     void OnSKSEMessage(SKSE::MessagingInterface::Message* msg)
     {
         if (!msg)
@@ -25,6 +42,7 @@ namespace
                 SKSE::log::info("Data loaded - initializing services");
                 WP::Core::Service::Get().OnDataLoaded();
                 WP::Hooks::InputHandler::Get().Install();
+                SKSE::GetTaskInterface()->AddTask(FrameUpdate);
                 break;
             }
         case SKSE::MessagingInterface::kPostPostLoad:
