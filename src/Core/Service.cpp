@@ -8,6 +8,7 @@
 #include "WP/Debug/DebugDraw.h"
 #include "WP/Animation/AnimationBridge.h"
 #include "WP/Camera/CameraMediator.h"
+#include "WP/UI/MenuIntegration.h"
 #include "RE/P/PlayerCharacter.h"
 #include "RE/A/Actor.h"
 #include "RE/A/ActorState.h"
@@ -125,6 +126,8 @@ namespace WP::Core
             SKSE::log::warn("WallWalkService: Player not found");
 
         Debug::DebugDraw::Get().SetEnabled(_settings.debugDraw);
+
+        UI::RegisterSKSEFrameworkMenu();
     }
 
     RE::PlayerCharacter* Service::GetPlayer()

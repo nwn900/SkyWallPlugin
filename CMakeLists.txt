@@ -13,7 +13,12 @@ set(SOURCES
     src/Animation/AnimationBridge.cpp
     src/Camera/CameraMediator.cpp
     src/Compatibility/PluginDetector.cpp
+    src/UI/MenuIntegration.cpp
     src/Debug/DebugDraw.cpp
+    include/imgui/imgui.cpp
+    include/imgui/imgui_draw.cpp
+    include/imgui/imgui_widgets.cpp
+    include/imgui/imgui_tables.cpp
 )
 
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -28,6 +33,7 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE
         include
         "${CMAKE_SOURCE_DIR}/extern/CommonLibSSE-NG/include"
+        "${CMAKE_SOURCE_DIR}/include/imgui"
 )
 
 if(MSVC)
