@@ -1,0 +1,34 @@
+name: Build
+
+on:
+  push:
+    branches: [main, dev, feature/**]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Run vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 6953b470633cca77f9e592aee53516ca1bb05da4
+
+      - name: Configure CMake
+        run: cmake -B build -S . --preset default -DVCPKG_ROOT="${{ github.workspace }}/vcpkg"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WallWalkSKSE
+          path: build/Release/*.dll

@@ -1,0 +1,10 @@
+{
+  "Name": "WallWalkSKSE",
+  "Version": "0.1.0",
+  "Author": "nwn900",
+  "Description": "Wall and ceiling walking locomotion plugin for Skyrim SE/AE",
+  "Requires": {
+    "AddressLibrary": true,
+    "SKSE": "2.0.0"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "wallwalkskse",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "commonlibsse-ng",
+    "spdlog"
+  ],
+  "builtin-baseline": "6953b470633cca77f9e592aee53516ca1bb05da4"
+}
