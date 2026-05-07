@@ -5,7 +5,7 @@
 #include "RE/H/hkVector4.h"
 #include "RE/P/PlayerCharacter.h"
 #include "RE/T/TESObjectCELL.h"
-#include "RE/B/bhkWorld.h"
+#include "RE/T/TES.h"
 #include "RE/B/bhkPickData.h"
 #include "SKSE/SKSE.h"
 #include <algorithm>
@@ -47,9 +47,9 @@ namespace WP::Physics
         pickData.rayInput.from = RE::hkVector4(origin);
         pickData.rayInput.to = RE::hkVector4(endPos);
 
-        auto* vtable = *reinterpret_cast<void***>(bhkWorldPtr);
-        auto pickFn = reinterpret_cast<bool(*)(RE::bhkWorld*, RE::bhkPickData&)>(vtable[0x33]);
-        pickFn(bhkWorldPtr, pickData);
+        auto* tes = RE::TES::GetSingleton();
+        if (!tes) return;
+        tes->Pick(pickData);
 
         if (pickData.pickFailed)
             return;
