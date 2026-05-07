@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-
 #include "WP/Core/Settings.h"
+#include "WP/Core/WallWalkTypes.h"
 
 namespace RE
 {
@@ -15,6 +15,7 @@ namespace WP
     {
         class SurfaceScanner;
         class LocomotionController;
+        class MagickaCost;
     }
 
     namespace Core
@@ -31,24 +32,26 @@ namespace WP
 
             void Enable(bool enabled);
             bool IsEnabled() const noexcept { return _enabled; }
-            bool IsArmed() const noexcept { return _armed; }
+            bool IsArmed() const noexcept { return _attach.hotkeyArmed; }
 
-            const RuntimeSettings& GetSettings() const { return _settings; }
-            void SetSettings(const RuntimeSettings& cfg) { _settings = cfg; }
+            RuntimeConfig& GetSettings() { return _settings; }
+            void SetSettings(const RuntimeConfig& cfg) { _settings = cfg; }
 
         private:
             Service() = default;
             ~Service() = default;
 
             bool _enabled = true;
-            bool _armed = false;
-            RuntimeSettings _settings;
+            RuntimeConfig _settings;
 
             std::unique_ptr<Physics::SurfaceScanner> _scanner;
             std::unique_ptr<Physics::LocomotionController> _controller;
+            std::unique_ptr<Physics::MagickaCost> _magicka;
 
             RE::PlayerCharacter* GetPlayer();
             void ProcessHotkey();
+
+            AttachState _attach;
         };
     }
 }

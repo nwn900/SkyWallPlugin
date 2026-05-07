@@ -21,6 +21,15 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            vcpkg_installed/
+            ${{ github.workspace }}/../vcpkg_cache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-${{ runner.os }}-
+
       - name: Run vcpkg
         uses: lukka/run-vcpkg@v11
         with:
@@ -28,6 +37,13 @@ jobs:
 
       - name: Configure CMake
         run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      - name: Cache CommonLibSSE-NG objects
+        uses: actions/cache@v4
+        with:
+          path: build/extern/CommonLibSSE-NG/
+          key: commonlib-${{ runner.os }}-${{ hashFiles('extern/CommonLibSSE-NG/**') }}
+          restore-keys: commonlib-${{ runner.os }}-
 
       - name: Build
         run: cmake --build build --config Release --parallel

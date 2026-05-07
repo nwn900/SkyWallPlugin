@@ -17,7 +17,7 @@ namespace WP::Core
         return path->parent_path() / "SKSE" / "Plugins" / "WallWalkSKSE.ini";
     }
 
-    bool LoadSettings(RuntimeSettings& outSettings)
+    bool LoadSettings(RuntimeConfig& outSettings)
     {
         auto path = GetSettingsPath();
         if (!fs::exists(path))
@@ -65,6 +65,16 @@ namespace WP::Core
                     outSettings.minAttachSpeed = std::stof(value);
                 else if (key == "EdgeTransferBlendTime")
                     outSettings.edgeTransferBlendTime = std::stof(value);
+                else if (key == "AdhesionStrength")
+                    outSettings.adhesionStrength = std::stof(value);
+                else if (key == "GravityMagnitude")
+                    outSettings.gravityMagnitude = std::stof(value);
+                else if (key == "DetachGraceTime")
+                    outSettings.detachGraceTime = std::stof(value);
+                else if (key == "EmptyMagickaGracePeriod")
+                    outSettings.emptyMagickaGracePeriod = std::stof(value);
+                else if (key == "MinMagickaToAttach")
+                    outSettings.minMagickaToAttach = std::stof(value);
                 else if (key == "DisableInCombat")
                     outSettings.disableInCombat = (value == "1" || value == "true");
                 else if (key == "DebugDraw")
@@ -83,7 +93,7 @@ namespace WP::Core
         }
     }
 
-    bool SaveSettings(const RuntimeSettings& settings)
+    bool SaveSettings(const RuntimeConfig& settings)
     {
         auto path = GetSettingsPath();
         auto parent = path.parent_path();
@@ -104,6 +114,11 @@ namespace WP::Core
             file << "MaxCeilingAttachDistance=" << settings.maxCeilingAttachDistance << "\n";
             file << "MinAttachSpeed=" << settings.minAttachSpeed << "\n";
             file << "EdgeTransferBlendTime=" << settings.edgeTransferBlendTime << "\n";
+            file << "AdhesionStrength=" << settings.adhesionStrength << "\n";
+            file << "GravityMagnitude=" << settings.gravityMagnitude << "\n";
+            file << "DetachGraceTime=" << settings.detachGraceTime << "\n";
+            file << "EmptyMagickaGracePeriod=" << settings.emptyMagickaGracePeriod << "\n";
+            file << "MinMagickaToAttach=" << settings.minMagickaToAttach << "\n";
             file << "DisableInCombat=" << (settings.disableInCombat ? "1" : "0") << "\n";
             file << "DebugDraw=" << (settings.debugDraw ? "1" : "0") << "\n";
             file << "DebugLogState=" << (settings.debugLogState ? "1" : "0") << "\n";

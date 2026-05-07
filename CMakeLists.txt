@@ -9,6 +9,7 @@ set(SOURCES
     src/Hooks/InputHandler.cpp
     src/Physics/SurfaceScanner.cpp
     src/Physics/LocomotionController.cpp
+    src/Physics/MagickaCost.cpp
     src/Debug/DebugDraw.cpp
 )
 

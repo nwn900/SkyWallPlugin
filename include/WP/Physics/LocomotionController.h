@@ -1,6 +1,12 @@
 #pragma once
 
-#include "RE/A/Actor.h"
+#include "WP/Core/WallWalkTypes.h"
+
+namespace RE
+{
+    class PlayerCharacter;
+    struct bhkCharacterController;
+}
 
 namespace WP::Physics
 {
@@ -11,10 +17,21 @@ namespace WP::Physics
         ~LocomotionController() = default;
 
         void Initialize();
-        void Update(RE::Actor* player, float deltaTime);
-        void Reset();
+        bool Update(RE::PlayerCharacter* player, Core::AttachState& state, const Core::RuntimeConfig& cfg, float deltaTime);
+
+        void BeginAttach(RE::PlayerCharacter* player, Core::AttachState& state, const Core::SurfaceSample& surface);
+        void DetachToAir(RE::PlayerCharacter* player, Core::AttachState& state);
+        bool TryJumpAttach(RE::PlayerCharacter* player, Core::AttachState& state, const Core::RuntimeConfig& cfg);
 
     private:
-        bool _initialized = false;
+        void ApplyLocalFrame(RE::PlayerCharacter* player, Core::AttachState& state);
+        void ProjectVelocity(RE::PlayerCharacter* player, const Core::AttachState& state, float deltaTime);
+        void ApplyAdhesion(RE::PlayerCharacter* player, const Core::AttachState& state, float deltaTime);
+        void FeedCharacterController(RE::PlayerCharacter* player, const Core::AttachState& state, const Core::RuntimeConfig& cfg);
+        void RestoreVanillaState(RE::PlayerCharacter* player);
+
+        RE::bhkCharacterController* GetController(RE::PlayerCharacter* player);
+
+        bool _wasVanilla = true;
     };
 }
