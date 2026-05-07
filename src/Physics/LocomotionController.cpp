@@ -31,7 +31,7 @@ namespace WP::Physics
         _wasVanilla = false;
 
         RE::NiPoint3 n = surface.normalWS;
-        SKSE::log::info("BeginAttach: mode={} normal=({:.2f},{:.2f},{:.2f})",
+        SKSE::log::info("BeginAttach: mode={} n=({:.2f},{:.2f},{:.2f})",
             static_cast<int>(state.mode), n.x, n.y, n.z);
     }
 
@@ -41,7 +41,6 @@ namespace WP::Physics
         state.mode = Core::WallWalkMode::kAirborne;
         state.primary.valid = false;
         _wasVanilla = true;
-        SKSE::log::info("DetachToAir");
     }
 
     bool LocomotionController::Update(RE::PlayerCharacter* player, Core::AttachState& state,
@@ -57,24 +56,24 @@ namespace WP::Physics
 
         controller->up = RE::hkVector4(up);
         controller->supportNorm = RE::hkVector4(up);
-
-        controller->surfaceInfo.supportedState.reset();
-        controller->surfaceInfo.supportedState.set(RE::hkpSurfaceInfo::SupportedState::kSupported);
-        controller->surfaceInfo.surfaceNormal = RE::hkVector4(up);
-
         controller->gravity = cfg.gravityMagnitude;
 
-        RE::NiPoint3 currentVel(
+        controller->flags.set(RE::CHARACTER_FLAGS::kSupport);
+        controller->flags.set(RE::CHARACTER_FLAGS::kCheckSupport);
+
+        RE::NiPoint3 vel(
             controller->outVelocity.quad.m128_f32[0],
             controller->outVelocity.quad.m128_f32[1],
             controller->outVelocity.quad.m128_f32[2]
         );
 
-        float penetrationSpeed = currentVel.Dot(up);
-        float adhesion = cfg.adhesionStrength * deltaTime * 0.1f;
+        float intoWall = vel.Dot(up);
+        RE::NiPoint3 tangent = vel - up * intoWall;
 
-        currentVel = currentVel - up * (penetrationSpeed + adhesion);
-        controller->outVelocity = RE::hkVector4(currentVel);
+        float adhesion = 300.0f * deltaTime;
+        RE::NiPoint3 result = tangent - up * adhesion;
+
+        controller->outVelocity = RE::hkVector4(result);
 
         return true;
     }
