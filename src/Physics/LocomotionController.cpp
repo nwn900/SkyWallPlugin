@@ -47,8 +47,7 @@ namespace WP::Physics
     bool LocomotionController::Update(RE::PlayerCharacter* player, Core::AttachState& state,
                                        const Core::RuntimeConfig& cfg, float deltaTime)
     {
-        if (!player) return false;
-        if (!Core::IsAttached(state.mode)) return false;
+        if (!player || !Core::IsAttached(state.mode)) return false;
 
         auto* controller = GetController(player);
         if (!controller) return false;
@@ -58,12 +57,12 @@ namespace WP::Physics
 
         controller->up = RE::hkVector4(up);
         controller->supportNorm = RE::hkVector4(up);
-        controller->gravity = cfg.gravityMagnitude;
 
-        controller->flags.set(RE::CHARACTER_FLAGS::kSupport);
-        controller->flags.set(RE::CHARACTER_FLAGS::kCheckSupport);
-        controller->flags.set(RE::CHARACTER_FLAGS::kCanPitch);
-        controller->flags.set(RE::CHARACTER_FLAGS::kCanRoll);
+        controller->surfaceInfo.supportedState.reset();
+        controller->surfaceInfo.supportedState.set(RE::hkpSurfaceInfo::SupportedState::kSupported);
+        controller->surfaceInfo.surfaceNormal = RE::hkVector4(up);
+
+        controller->gravity = cfg.gravityMagnitude;
 
         RE::NiPoint3 currentVel(
             controller->outVelocity.quad.m128_f32[0],
@@ -71,13 +70,11 @@ namespace WP::Physics
             controller->outVelocity.quad.m128_f32[2]
         );
 
-        float normalSpeed = currentVel.Dot(up);
-        RE::NiPoint3 tangent = currentVel - up * normalSpeed;
+        float penetrationSpeed = currentVel.Dot(up);
+        float adhesion = cfg.adhesionStrength * deltaTime * 0.1f;
 
-        float adhesion = cfg.adhesionStrength * deltaTime;
-        tangent = tangent - up * adhesion;
-
-        controller->outVelocity = RE::hkVector4(tangent);
+        currentVel = currentVel - up * (penetrationSpeed + adhesion);
+        controller->outVelocity = RE::hkVector4(currentVel);
 
         return true;
     }
