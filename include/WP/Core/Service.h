@@ -37,6 +37,8 @@ namespace WP
             RuntimeConfig& GetSettings() { return _settings; }
             void SetSettings(const RuntimeConfig& cfg) { _settings = cfg; }
 
+            AttachState& GetAttachState() { return _attach; }
+
         private:
             Service() = default;
             ~Service() = default;

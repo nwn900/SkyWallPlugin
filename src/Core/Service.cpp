@@ -6,10 +6,71 @@
 #include "WP/Physics/MagickaCost.h"
 #include "WP/Hooks/InputHandler.h"
 #include "WP/Debug/DebugDraw.h"
+#include "WP/Animation/AnimationBridge.h"
+#include "WP/Camera/CameraMediator.h"
 #include "RE/P/PlayerCharacter.h"
 #include "RE/A/Actor.h"
 #include "RE/A/ActorState.h"
+#include "RE/U/UI.h"
 #include "SKSE/SKSE.h"
+
+namespace
+{
+    constexpr std::uint32_t kSerializationSignature = 'WPLG';
+    constexpr std::uint32_t kSerializationVersion = 1;
+
+    void SaveAttachState(SKSE::SerializationInterface* a_intfc, const WP::Core::AttachState& state)
+    {
+        if (!a_intfc->OpenRecord(kSerializationSignature, kSerializationVersion))
+            return;
+
+        a_intfc->WriteRecordData(&state.mode, sizeof(state.mode));
+        a_intfc->WriteRecordData(&state.hotkeyArmed, sizeof(state.hotkeyArmed));
+        a_intfc->WriteRecordData(&state.transitionAlpha, sizeof(state.transitionAlpha));
+        a_intfc->WriteRecordData(&state.noSurfaceTime, sizeof(state.noSurfaceTime));
+        a_intfc->WriteRecordData(&state.adherence, sizeof(state.adherence));
+    }
+
+    void LoadAttachState(SKSE::SerializationInterface* a_intfc, WP::Core::AttachState& state)
+    {
+        std::uint32_t type, version, length;
+        while (a_intfc->GetNextRecordInfo(type, version, length))
+        {
+            if (type != kSerializationSignature)
+                continue;
+
+            WP::Core::WallWalkMode mode;
+            bool hotkeyArmed;
+            float transitionAlpha, noSurfaceTime, adherence;
+
+            a_intfc->ReadRecordData(&mode, sizeof(mode));
+            a_intfc->ReadRecordData(&hotkeyArmed, sizeof(hotkeyArmed));
+            a_intfc->ReadRecordData(&transitionAlpha, sizeof(transitionAlpha));
+            a_intfc->ReadRecordData(&noSurfaceTime, sizeof(noSurfaceTime));
+            a_intfc->ReadRecordData(&adherence, sizeof(adherence));
+
+            if (WP::Core::IsAttached(mode) || hotkeyArmed)
+            {
+                state.mode = mode;
+                state.hotkeyArmed = hotkeyArmed;
+                state.transitionAlpha = transitionAlpha;
+                state.noSurfaceTime = noSurfaceTime;
+                state.adherence = adherence;
+            }
+            else
+            {
+                state.mode = WP::Core::WallWalkMode::kGrounded;
+                state.hotkeyArmed = false;
+                state.transitionAlpha = 0.0f;
+                state.noSurfaceTime = 0.0f;
+                state.adherence = 0.0f;
+            }
+
+            SKSE::log::info("WallWalkService: State restored (mode={}, armed={})",
+                static_cast<int>(state.mode), state.hotkeyArmed);
+        }
+    }
+}
 
 namespace WP::Core
 {
@@ -33,6 +94,21 @@ namespace WP::Core
 
         _scanner->Initialize();
         _controller->Initialize();
+
+        auto* serialization = SKSE::GetSerializationInterface();
+        if (serialization)
+        {
+            serialization->SetUniqueID(kSerializationSignature);
+            serialization->SetSaveCallback([](SKSE::SerializationInterface* a_intfc)
+            {
+                SaveAttachState(a_intfc, Service::Get().GetAttachState());
+            });
+            serialization->SetLoadCallback([](SKSE::SerializationInterface* a_intfc)
+            {
+                LoadAttachState(a_intfc, Service::Get().GetAttachState());
+            });
+            SKSE::log::info("WallWalkService: Save/load callbacks registered");
+        }
 
         SKSE::log::info("WallWalkService: Initialized");
     }
@@ -61,6 +137,14 @@ namespace WP::Core
 
         auto* player = GetPlayer();
         if (!player) return;
+
+        auto* ui = RE::UI::GetSingleton();
+        if (ui && ui->GameIsPaused())
+        {
+            if (Core::IsAttached(_attach.mode))
+                _controller->DetachToAir(player, _attach);
+            return;
+        }
 
         if (Core::ShouldSuspendForState(player))
         {
@@ -101,6 +185,8 @@ namespace WP::Core
                     }
                 }
             }
+            Animation::AnimationBridge::Get().PushState(player, _attach);
+            Camera::CameraMediator::Get().Update(player, _attach, deltaTime);
             return;
         }
 
@@ -154,6 +240,8 @@ namespace WP::Core
                 {
                     SKSE::log::info("WallWalkService: Lost surface for {:.2f}s, detaching", _attach.noSurfaceTime);
                     _controller->DetachToAir(player, _attach);
+                    Animation::AnimationBridge::Get().PushState(player, _attach);
+                    Camera::CameraMediator::Get().Update(player, _attach, deltaTime);
                     return;
                 }
             }
@@ -165,6 +253,9 @@ namespace WP::Core
                 _controller->DetachToAir(player, _attach);
             }
         }
+
+        Animation::AnimationBridge::Get().PushState(player, _attach);
+        Camera::CameraMediator::Get().Update(player, _attach, deltaTime);
     }
 
     void Service::OnInputEvent(std::uint32_t keyCode, bool pressed)

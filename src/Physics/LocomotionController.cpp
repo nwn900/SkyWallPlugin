@@ -73,8 +73,11 @@ namespace WP::Physics
 
         if (player->IsInMidair())
         {
-            DetachToAir(player, state);
-            return false;
+            if (state.mode != Core::WallWalkMode::kAirborne)
+            {
+                state.mode = Core::WallWalkMode::kAirborne;
+                state.noSurfaceTime = 0.0f;
+            }
         }
 
         return true;
@@ -201,16 +204,13 @@ namespace WP::Physics
         auto* controller = GetController(player);
         if (!controller) return false;
 
-        RE::NiPoint3 currentPos = player->GetPosition();
-
-        RE::NiPoint3 currentVel(
+        RE::NiPoint3 velocity(
             controller->outVelocity.quad.m128_f32[0],
             controller->outVelocity.quad.m128_f32[1],
             controller->outVelocity.quad.m128_f32[2]
         );
 
-        RE::NiPoint3 velDir = currentVel;
-        float speed = velDir.Unitize();
+        float speed = velocity.Length();
         if (speed < cfg.minAttachSpeed) return false;
 
         auto* cell = player->GetParentCell();
@@ -220,53 +220,79 @@ namespace WP::Physics
         auto* hkpWorld = bhkWorld->GetWorld1();
         if (!hkpWorld) return false;
 
-        float sweepDist = speed * 0.5f;
-        if (sweepDist > cfg.maxAttachDistance) sweepDist = cfg.maxAttachDistance;
-        RE::NiPoint3 predictedPos = currentPos + velDir * sweepDist;
+        RE::NiPoint3 dir = velocity;
+        dir.Unitize();
+        RE::NiPoint3 pos = player->GetPosition();
 
-        RE::hkpWorldRayCastInput input;
-        input.from = RE::hkVector4(currentPos);
-        input.to = RE::hkVector4(predictedPos);
+        float sweepDist = std::min(speed * 0.5f, cfg.maxAttachDistance);
 
-        RE::hkpWorldRayCastOutput output;
-        hkpWorld->CastRay(input, output);
+        Core::SurfaceSample bestHit;
+        bestHit.valid = false;
+        bestHit.distance = FLT_MAX;
 
-        if (!output.HasHit()) return false;
-        if (output.hitFraction < 0.0f || output.hitFraction > 1.0f) return false;
+        int numSamples = 5;
+        for (int i = 1; i <= numSamples; ++i)
+        {
+            float t = (float)i / (float)numSamples;
+            float dist = sweepDist * t;
 
-        RE::NiPoint3 hitNormal(
-            output.normal.quad.m128_f32[0],
-            output.normal.quad.m128_f32[1],
-            output.normal.quad.m128_f32[2]
-        );
-        hitNormal.Unitize();
+            RE::NiPoint3 origin = pos + dir * dist;
+            RE::NiPoint3 endPt = origin + dir * (sweepDist * 0.4f);
 
-        if (hitNormal.z > 0.55f) return false;
+            RE::hkpWorldRayCastInput input;
+            input.from = RE::hkVector4(origin);
+            input.to = RE::hkVector4(endPt);
 
-        RE::hkVector4 hitVec = input.from + (input.to - input.from) * RE::hkVector4(output.hitFraction);
-        RE::NiPoint3 hitPoint(
-            hitVec.quad.m128_f32[0],
-            hitVec.quad.m128_f32[1],
-            hitVec.quad.m128_f32[2]
-        );
+            RE::hkpWorldRayCastOutput output;
+            hkpWorld->CastRay(input, output);
+
+            if (!output.HasHit()) continue;
+
+            RE::NiPoint3 hitNormal(
+                output.normal.quad.m128_f32[0],
+                output.normal.quad.m128_f32[1],
+                output.normal.quad.m128_f32[2]
+            );
+            hitNormal.Unitize();
+
+            if (hitNormal.z > 0.55f) continue;
+
+            RE::hkVector4 hitVec = input.from + (input.to - input.from) * RE::hkVector4(output.hitFraction);
+            RE::NiPoint3 hitPoint(
+                hitVec.quad.m128_f32[0],
+                hitVec.quad.m128_f32[1],
+                hitVec.quad.m128_f32[2]
+            );
+
+            float hitDist = output.hitFraction * (sweepDist * 0.4f);
+            if (hitDist < bestHit.distance)
+            {
+                bestHit.valid = true;
+                bestHit.hitPointWS = hitPoint;
+                bestHit.normalWS = hitNormal;
+                bestHit.distance = hitDist;
+                bestHit.isCeiling = (hitNormal.z < -0.55f);
+            }
+        }
+
+        if (!bestHit.valid) return false;
 
         static constexpr float CLEARANCE = 30.0f;
-        RE::NiPoint3 attachPos = hitPoint + hitNormal * CLEARANCE;
+        RE::NiPoint3 attachPos = bestHit.hitPointWS + bestHit.normalWS * CLEARANCE;
         player->SetPosition(attachPos, true);
 
-        float normalComponent = currentVel.Dot(hitNormal);
-        RE::NiPoint3 tangentVel = currentVel - hitNormal * normalComponent;
-        controller->outVelocity = RE::hkVector4(tangentVel);
+        RE::NiPoint3 tangentVel = velocity - bestHit.normalWS * velocity.Dot(bestHit.normalWS);
+        RE::NiPoint3 projectedVel = tangentVel + bestHit.normalWS * -200.0f;
 
-        Core::SurfaceSample surface;
-        surface.valid = true;
-        surface.normalWS = hitNormal;
-        surface.hitPointWS = hitPoint;
-        surface.distance = output.hitFraction * sweepDist;
-        surface.isCeiling = (hitNormal.z < -0.55f);
+        if (auto* ctrl = GetController(player))
+        {
+            ctrl->outVelocity = RE::hkVector4(projectedVel);
+        }
 
-        BeginAttach(player, state, surface);
+        BeginAttach(player, state, bestHit);
 
+        SKSE::log::info("TryJumpAttach: attached at ({:.1f},{:.1f},{:.1f}) speed={:.1f}",
+            bestHit.hitPointWS.x, bestHit.hitPointWS.y, bestHit.hitPointWS.z, speed);
         return true;
     }
 }

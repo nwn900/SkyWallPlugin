@@ -13,33 +13,44 @@ namespace WP::Debug
     void DebugDraw::DrawFrame(RE::PlayerCharacter* player, const Core::AttachState& state,
                                const Core::SurfaceSample& sample)
     {
+        static int frameCounter = 0;
         if (!_enabled || !player) return;
+
+        if (++frameCounter % 60 != 0) return;
 
         if (sample.valid)
         {
-            RE::NiPoint3 normalEnd = sample.hitPointWS + sample.normalWS * 30.0f;
-            DrawLine(sample.hitPointWS, normalEnd, 0xFF0000FF);
-            DrawCross(sample.hitPointWS, 4.0f, 0xFFFF0000);
+            SKSE::log::info("[DEBUG] Surface: hit=({:.1f},{:.1f},{:.1f}) norm=({:.2f},{:.2f},{:.2f}) dist={:.1f} ceil={} score={:.1f}",
+                sample.hitPointWS.x, sample.hitPointWS.y, sample.hitPointWS.z,
+                sample.normalWS.x, sample.normalWS.y, sample.normalWS.z,
+                sample.distance, sample.isCeiling, sample.score);
         }
 
         if (Core::IsAttached(state.mode))
         {
-            RE::NiPoint3 pos = player->GetPosition();
-            RE::NiPoint3 upEnd = pos + state.desiredUpWS * 50.0f;
-            DrawLine(pos, upEnd, 0xFF00FF00);
+            const char* modeStr = "Unknown";
+            switch (state.mode)
+            {
+            case Core::WallWalkMode::kAttachedWall: modeStr = "Wall"; break;
+            case Core::WallWalkMode::kAttachedCeiling: modeStr = "Ceiling"; break;
+            case Core::WallWalkMode::kTransition: modeStr = "Transition"; break;
+            case Core::WallWalkMode::kAirborne: modeStr = "Airborne"; break;
+            case Core::WallWalkMode::kDetaching: modeStr = "Detaching"; break;
+            default: break;
+            }
 
-            RE::NiPoint3 gravEnd = pos + state.desiredGravityWS * 50.0f;
-            DrawLine(pos, gravEnd, 0xFFFF0000);
+            SKSE::log::info("[DEBUG] State: mode={} up=({:.2f},{:.2f},{:.2f}) grav=({:.2f},{:.2f},{:.2f}) blend={:.2f} nosurf={:.2f}",
+                modeStr,
+                state.desiredUpWS.x, state.desiredUpWS.y, state.desiredUpWS.z,
+                state.desiredGravityWS.x, state.desiredGravityWS.y, state.desiredGravityWS.z,
+                state.transitionAlpha, state.noSurfaceTime);
         }
+
+        RE::NiPoint3 pos = player->GetPosition();
+        SKSE::log::info("[DEBUG] Player pos=({:.1f},{:.1f},{:.1f}) armed={}",
+            pos.x, pos.y, pos.z, state.hotkeyArmed);
     }
 
-    void DebugDraw::DrawLine(const RE::NiPoint3& /*start*/, const RE::NiPoint3& /*end*/,
-                              std::uint32_t /*color*/)
-    {
-    }
-
-    void DebugDraw::DrawCross(const RE::NiPoint3& /*point*/, float /*size*/,
-                               std::uint32_t /*color*/)
-    {
-    }
+    void DebugDraw::DrawLine(const RE::NiPoint3&, const RE::NiPoint3&, std::uint32_t) {}
+    void DebugDraw::DrawCross(const RE::NiPoint3&, float, std::uint32_t) {}
 }

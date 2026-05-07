@@ -1,5 +1,6 @@
 #include "WP/Animation/AnimationBridge.h"
 #include "RE/A/Actor.h"
+#include "RE/B/BSFixedString.h"
 #include "SKSE/SKSE.h"
 
 namespace WP::Animation
@@ -19,9 +20,10 @@ namespace WP::Animation
         SetGraphBool(actor, "WP_IsAdhered", isCurrentlyAttached);
         SetGraphBool(actor, "WP_IsCeiling", state.mode == Core::WallWalkMode::kAttachedCeiling);
         SetGraphFloat(actor, "WP_AttachBlend", state.transitionAlpha);
-        SetGraphFloat(actor, "WP_SurfacePitch", 0.0f);
-        SetGraphFloat(actor, "WP_SurfaceAngle", std::abs(state.desiredUpWS.z) * 90.0f);
+        SetGraphFloat(actor, "WP_SurfacePitch", std::abs(1.0f - std::abs(state.desiredUpWS.z)) * 90.0f);
+        SetGraphFloat(actor, "WP_SurfaceAngle", std::acos(std::clamp(std::abs(state.desiredUpWS.z), 0.0f, 1.0f)) * 57.29578f);
         SetGraphBool(actor, "WP_IsTransitioning", state.mode == Core::WallWalkMode::kTransition);
+        SetGraphBool(actor, "WP_IsAirAttachPending", state.mode == Core::WallWalkMode::kAirborne && state.hotkeyArmed);
 
         if (_lastAttached != isCurrentlyAttached)
         {
@@ -42,34 +44,37 @@ namespace WP::Animation
 
     void AnimationBridge::SendAttachEvent(RE::Actor* actor)
     {
+        if (!actor || !_enabled) return;
         SendGraphEvent(actor, "WP_Attach");
-        SKSE::log::info("AnimationBridge: Attach event sent");
     }
 
     void AnimationBridge::SendDetachEvent(RE::Actor* actor)
     {
+        if (!actor || !_enabled) return;
         SendGraphEvent(actor, "WP_Detach");
-        SKSE::log::info("AnimationBridge: Detach event sent");
     }
 
     void AnimationBridge::SendSurfaceSwitchEvent(RE::Actor* actor)
     {
+        if (!actor || !_enabled) return;
         SendGraphEvent(actor, "WP_SurfaceSwitch");
-        SKSE::log::info("AnimationBridge: SurfaceSwitch event sent");
     }
 
-    void AnimationBridge::SetGraphBool(RE::Actor*, const char* name, bool value)
+    void AnimationBridge::SetGraphBool(RE::Actor* actor, const char* name, bool value)
     {
-        SKSE::log::trace("AnimationBridge::SetGraphBool({}) = {}", name, value);
+        if (!actor || !_enabled) return;
+        actor->SetGraphVariableBool(RE::BSFixedString(name), value);
     }
 
-    void AnimationBridge::SetGraphFloat(RE::Actor*, const char* name, float value)
+    void AnimationBridge::SetGraphFloat(RE::Actor* actor, const char* name, float value)
     {
-        SKSE::log::trace("AnimationBridge::SetGraphFloat({}) = {}", name, value);
+        if (!actor || !_enabled) return;
+        actor->SetGraphVariableFloat(RE::BSFixedString(name), value);
     }
 
-    void AnimationBridge::SendGraphEvent(RE::Actor*, const char* name)
+    void AnimationBridge::SendGraphEvent(RE::Actor* actor, const char* name)
     {
-        SKSE::log::trace("AnimationBridge::SendGraphEvent({})", name);
+        if (!actor || !_enabled) return;
+        actor->NotifyAnimationGraph(RE::BSFixedString(name));
     }
 }

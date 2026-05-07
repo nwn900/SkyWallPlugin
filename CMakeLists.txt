@@ -12,6 +12,7 @@ set(SOURCES
     src/Physics/MagickaCost.cpp
     src/Animation/AnimationBridge.cpp
     src/Camera/CameraMediator.cpp
+    src/Compatibility/PluginDetector.cpp
     src/Debug/DebugDraw.cpp
 )
 
