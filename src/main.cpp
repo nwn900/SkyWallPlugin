@@ -6,10 +6,15 @@
 #include "WP/Debug/DebugDraw.h"
 
 #include <chrono>
+#include <Windows.h>
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
 
 namespace
 {
-    void FrameUpdate()
+    UINT g_timerId = 0;
+
+    void FrameHandler()
     {
         static auto lastTime = std::chrono::high_resolution_clock::now();
         auto now = std::chrono::high_resolution_clock::now();
@@ -20,8 +25,11 @@ namespace
         {
             WP::Core::Service::Get().OnFrame(dt);
         }
+    }
 
-        SKSE::GetTaskInterface()->AddTask(FrameUpdate);
+    void CALLBACK FrameTimer(UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR)
+    {
+        SKSE::GetTaskInterface()->AddTask(FrameHandler);
     }
 
     void OnSKSEMessage(SKSE::MessagingInterface::Message* msg)
@@ -42,7 +50,12 @@ namespace
                 SKSE::log::info("Data loaded - initializing services");
                 WP::Core::Service::Get().OnDataLoaded();
                 WP::Hooks::InputHandler::Get().Install();
-                SKSE::GetTaskInterface()->AddTask(FrameUpdate);
+
+                if (!g_timerId)
+                {
+                    g_timerId = timeSetEvent(16, 1, FrameTimer, 0, TIME_PERIODIC);
+                    SKSE::log::info("Frame timer started (id={})", g_timerId);
+                }
                 break;
             }
         case SKSE::MessagingInterface::kPostPostLoad:
