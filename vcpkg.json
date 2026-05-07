@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "wallwalkskse",
   "version-string": "0.1.0",
+  "builtin-baseline": "bc71aa640f89933294f16e004b212c7fd3183eed",
   "dependencies": [
     "spdlog",
     "fmt",

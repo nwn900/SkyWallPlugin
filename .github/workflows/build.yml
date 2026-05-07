@@ -23,6 +23,8 @@ jobs:
 
       - name: Run vcpkg
         uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: bc71aa640f89933294f16e004b212c7fd3183eed
 
       - name: Configure CMake
         run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
