@@ -47,7 +47,7 @@ namespace WP::Core
 
     struct RuntimeConfig
     {
-        int hotkey = 0;
+        int hotkey = 21;
         bool enableMagickaCost = false;
         float magickaPerSecond = 5.0f;
         float maxAttachDistance = 3000.0f;
@@ -59,7 +59,7 @@ namespace WP::Core
         float detachGraceTime = 0.3f;
         float emptyMagickaGracePeriod = 1.5f;
         float minMagickaToAttach = 10.0f;
-        bool disableInCombat = true;
+        bool disableInCombat = false;
         bool debugDraw = false;
         bool debugLogState = false;
     };

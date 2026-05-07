@@ -1,14 +1,15 @@
 {
   "id": "WallWalk",
   "name": "Wall Walk",
+  "version": 1,
   "settings": [
     {
       "id": "General",
       "name": "$General",
       "items": [
         { "id": "enabled", "name": "Enable Plugin", "type": "toggle", "default": true },
-        { "id": "hotkey", "name": "Wall-Walk Hotkey", "type": "keymap", "default": 0 },
-        { "id": "disableInCombat", "name": "Disable In Combat", "type": "toggle", "default": true },
+        { "id": "hotkey", "name": "Wall-Walk Hotkey", "type": "keymap", "default": 21 },
+        { "id": "disableInCombat", "name": "Disable In Combat", "type": "toggle", "default": false },
         { "id": "debugLogState", "name": "Log State Changes", "type": "toggle", "default": false }
       ]
     },
