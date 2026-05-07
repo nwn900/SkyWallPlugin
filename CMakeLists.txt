@@ -15,10 +15,6 @@ set(SOURCES
     src/Compatibility/PluginDetector.cpp
     src/UI/MenuIntegration.cpp
     src/Debug/DebugDraw.cpp
-    include/imgui/imgui.cpp
-    include/imgui/imgui_draw.cpp
-    include/imgui/imgui_widgets.cpp
-    include/imgui/imgui_tables.cpp
 )
 
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
