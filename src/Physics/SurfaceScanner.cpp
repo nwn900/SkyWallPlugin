@@ -71,6 +71,15 @@ namespace WP::Physics
         RE::hkpWorldRayCastOutput output;
         hkpWorld->CastRay(input, output);
 
+        static bool firstRay = true;
+        if (firstRay)
+        {
+            firstRay = false;
+            SKSE::log::info("[RAYCAST] from=({:.1f},{:.1f},{:.1f}) to=({:.1f},{:.1f},{:.1f}) frac={:.4f} coll={}",
+                origin.x, origin.y, origin.z, endPos.x, endPos.y, endPos.z,
+                output.hitFraction, static_cast<const void*>(output.rootCollidable));
+        }
+
         if (output.hitFraction >= 1.0f)
             return;
 
