@@ -1,6 +1,11 @@
 #pragma once
 
-#include "SKSE/SKSE.h"
+#include <cstdint>
+
+#include "RE/B/BSInputDeviceManager.h"
+#include "RE/B/ButtonEvent.h"
+#include "RE/B/BSTEvent.h"
+#include "RE/I/InputEvent.h"
 
 namespace WP::Hooks
 {

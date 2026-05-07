@@ -3,6 +3,7 @@
 #include "WP/Physics/LocomotionController.h"
 #include "WP/Hooks/InputHandler.h"
 #include "WP/Debug/DebugDraw.h"
+#include "RE/P/PlayerCharacter.h"
 #include "SKSE/SKSE.h"
 
 namespace WP::Core
@@ -37,7 +38,8 @@ namespace WP::Core
         auto* player = GetPlayer();
         if (player)
         {
-            SKSE::log::info("WallWalkService: Player detected");
+            SKSE::log::info("WallWalkService: Player detected - name: {}",
+                player->GetDisplayFullName() ? player->GetDisplayFullName() : "unknown");
         }
         else
         {
@@ -49,10 +51,7 @@ namespace WP::Core
 
     RE::PlayerCharacter* Service::GetPlayer()
     {
-        if (auto* player = RE::PlayerCharacter::GetSingleton())
-            return player;
-
-        return nullptr;
+        return RE::PlayerCharacter::GetSingleton();
     }
 
     void Service::OnFrame(float deltaTime)

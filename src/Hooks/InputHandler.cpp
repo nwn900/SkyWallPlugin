@@ -1,6 +1,5 @@
 #include "WP/Hooks/InputHandler.h"
 #include "WP/Core/Service.h"
-#include "WP/Core/Settings.h"
 #include "SKSE/SKSE.h"
 
 namespace WP::Hooks
@@ -36,21 +35,20 @@ namespace WP::Hooks
         RE::InputEvent* const* evn,
         RE::BSTEventSource<RE::InputEvent*>*)
     {
-        if (!evn)
+        if (!evn || !*evn)
             return RE::BSEventNotifyControl::kContinue;
 
         for (auto* e = *evn; e; e = e->next)
         {
-            if (e->eventType != RE::INPUT_EVENT_TYPE::kButton)
+            if (e->GetEventType() != RE::INPUT_EVENT_TYPE::kButton)
                 continue;
 
             auto* buttonEvent = e->AsButtonEvent();
             if (!buttonEvent)
                 continue;
 
-            if (buttonEvent->IsDown() &&
-                buttonEvent->GetIDCode() == _hotkey &&
-                _hotkey != 0)
+            if (_hotkey != 0 && buttonEvent->IsDown() &&
+                buttonEvent->GetIDCode() == _hotkey)
             {
                 Core::Service::Get().OnInputEvent(
                     buttonEvent->GetIDCode(), true);

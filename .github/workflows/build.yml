@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main, master, dev, feature/**]
+    branches: [main, master, dev]
   pull_request:
     branches: [main]
 
@@ -13,16 +13,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Clone CommonLibSSE-NG
+        run: |
+          New-Item -ItemType Directory -Force -Path extern
+          git clone --depth 1 -b ng https://github.com/alandtse/CommonLibVR.git extern/CommonLibSSE-NG
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
       - name: Run vcpkg
         uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: 6953b470633cca77f9e592aee53516ca1bb05da4
 
       - name: Configure CMake
-        run: cmake -B build -S . --preset default -DVCPKG_ROOT="${{ github.workspace }}/vcpkg"
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
 
       - name: Build
         run: cmake --build build --config Release --parallel

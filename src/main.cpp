@@ -7,24 +7,6 @@
 
 namespace
 {
-    void InitializeLogging()
-    {
-        auto path = SKSE::log::log_directory();
-        if (!path)
-            return;
-
-        *path /= std::string(WP::Plugin::Name) + ".log";
-        auto file = *path;
-
-        auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(file.string(), true);
-        auto log = std::make_shared<spdlog::logger>("WallWalk", std::move(sink));
-
-        log->set_level(spdlog::level::info);
-        log->flush_on(spdlog::level::info);
-
-        spdlog::set_default_logger(std::move(log));
-    }
-
     void OnSKSEMessage(SKSE::MessagingInterface::Message* msg)
     {
         if (!msg)
@@ -58,12 +40,10 @@ namespace
 
 SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
-    InitializeLogging();
+    SKSE::Init(skse);
 
     SKSE::log::info("{} v{} initializing", WP::Plugin::Name, WP::Plugin::Version);
     SKSE::log::info("Author: {}", WP::Plugin::Author);
-
-    SKSE::Init(skse);
 
     auto* messaging = SKSE::GetMessagingInterface();
     if (!messaging)

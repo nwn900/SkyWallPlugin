@@ -3,6 +3,7 @@ project(WallWalkSKSE VERSION 0.1.0 LANGUAGES CXX)
 
 set(SOURCES
     src/main.cpp
+    src/PluginEntry.cpp
     src/Core/Settings.cpp
     src/Core/Service.cpp
     src/Hooks/InputHandler.cpp
@@ -11,22 +12,32 @@ set(SOURCES
     src/Debug/DebugDraw.cpp
 )
 
-find_package(CommonLibSSE REQUIRED)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ENABLE_SKYRIM_VR OFF CACHE BOOL "" FORCE)
+add_subdirectory(extern/CommonLibSSE-NG EXCLUDE_FROM_ALL)
 
-add_commonlibsse_plugin(${PROJECT_NAME}
-    SOURCES ${SOURCES}
-    NAME "WallWalkSKSE"
-    AUTHOR "nwn900"
-    DESCRIPTION "Wall and ceiling walking locomotion plugin for Skyrim SE/AE"
+add_library(${PROJECT_NAME} SHARED ${SOURCES})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE CommonLibSSE::CommonLibSSE)
+
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        include
+        "${CMAKE_SOURCE_DIR}/extern/CommonLibSSE-NG/include"
 )
 
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
-target_include_directories(${PROJECT_NAME} PRIVATE include)
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        /FI"${CMAKE_SOURCE_DIR}/extern/CommonLibSSE-NG/include/SKSE/Impl/PCH.h"
+        /utf-8 /bigobj
+    )
+endif()
 
-find_package(spdlog CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog)
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    PREFIX ""
+    SUFFIX ".dll"
+)
 
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION SKSE/Plugins
-    LIBRARY DESTINATION SKSE/Plugins
 )

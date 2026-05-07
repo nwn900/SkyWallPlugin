@@ -10,3 +10,4 @@ out/
 CMakeCache.txt
 CMakeFiles/
 vcpkg_installed/
+extern/

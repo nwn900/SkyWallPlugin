@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+
 #include "WP/Core/Settings.h"
 
 namespace RE

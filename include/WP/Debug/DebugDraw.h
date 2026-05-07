@@ -1,11 +1,6 @@
 #pragma once
 
-#include <cstdint>
-
-namespace RE
-{
-    class Actor;
-}
+#include "RE/A/Actor.h"
 
 namespace WP::Debug
 {
