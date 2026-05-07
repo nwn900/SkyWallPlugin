@@ -127,7 +127,8 @@ namespace WP::Core
 
         Debug::DebugDraw::Get().SetEnabled(_settings.debugDraw);
 
-        UI::RegisterSKSEFrameworkMenu();
+        // SKSE Menu Framework integration disabled - causes crashes with ImGui context
+        // UI::RegisterSKSEFrameworkMenu();
     }
 
     RE::PlayerCharacter* Service::GetPlayer()
