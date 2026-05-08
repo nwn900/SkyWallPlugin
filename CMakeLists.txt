@@ -7,6 +7,7 @@ set(SOURCES
     src/Core/Settings.cpp
     src/Core/Service.cpp
     src/Hooks/InputHandler.cpp
+    src/Hooks/PhysicsHook.cpp
     src/Physics/SurfaceScanner.cpp
     src/Physics/LocomotionController.cpp
     src/Physics/MagickaCost.cpp

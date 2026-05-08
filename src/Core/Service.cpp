@@ -8,7 +8,6 @@
 #include "WP/Debug/DebugDraw.h"
 #include "WP/Animation/AnimationBridge.h"
 #include "WP/Camera/CameraMediator.h"
-#include "WP/UI/MenuIntegration.h"
 #include "RE/P/PlayerCharacter.h"
 #include "RE/A/Actor.h"
 #include "RE/A/ActorState.h"
@@ -23,9 +22,7 @@ namespace
 
     void SaveAttachState(SKSE::SerializationInterface* a_intfc, const WP::Core::AttachState& state)
     {
-        if (!a_intfc->OpenRecord(kSerializationSignature, kSerializationVersion))
-            return;
-
+        if (!a_intfc->OpenRecord(kSerializationSignature, kSerializationVersion)) return;
         a_intfc->WriteRecordData(&state.mode, sizeof(state.mode));
         a_intfc->WriteRecordData(&state.hotkeyArmed, sizeof(state.hotkeyArmed));
         a_intfc->WriteRecordData(&state.transitionAlpha, sizeof(state.transitionAlpha));
@@ -38,19 +35,15 @@ namespace
         std::uint32_t type, version, length;
         while (a_intfc->GetNextRecordInfo(type, version, length))
         {
-            if (type != kSerializationSignature)
-                continue;
-
+            if (type != kSerializationSignature) continue;
             WP::Core::WallWalkMode mode;
             bool hotkeyArmed;
             float transitionAlpha, noSurfaceTime, adherence;
-
             a_intfc->ReadRecordData(&mode, sizeof(mode));
             a_intfc->ReadRecordData(&hotkeyArmed, sizeof(hotkeyArmed));
             a_intfc->ReadRecordData(&transitionAlpha, sizeof(transitionAlpha));
             a_intfc->ReadRecordData(&noSurfaceTime, sizeof(noSurfaceTime));
             a_intfc->ReadRecordData(&adherence, sizeof(adherence));
-
             if (WP::Core::IsAttached(mode) || hotkeyArmed)
             {
                 state.mode = mode;
@@ -63,37 +56,23 @@ namespace
             {
                 state.mode = WP::Core::WallWalkMode::kGrounded;
                 state.hotkeyArmed = false;
-                state.transitionAlpha = 0.0f;
-                state.noSurfaceTime = 0.0f;
-                state.adherence = 0.0f;
+                state.transitionAlpha = state.noSurfaceTime = state.adherence = 0.0f;
             }
-
-            SKSE::log::info("WallWalkService: State restored (mode={}, armed={})",
-                static_cast<int>(state.mode), state.hotkeyArmed);
         }
     }
 }
 
 namespace WP::Core
 {
-    Service& Service::Get()
-    {
-        static Service instance;
-        return instance;
-    }
+    Service& Service::Get() { static Service instance; return instance; }
 
     void Service::OnSKSELoad()
     {
         SKSE::log::info("WallWalkService: SKSE load phase");
         LoadSettings(_settings);
-
-        if (!_scanner)
-            _scanner = std::make_unique<Physics::SurfaceScanner>();
-        if (!_controller)
-            _controller = std::make_unique<Physics::LocomotionController>();
-        if (!_magicka)
-            _magicka = std::make_unique<Physics::MagickaCost>();
-
+        if (!_scanner) _scanner = std::make_unique<Physics::SurfaceScanner>();
+        if (!_controller) _controller = std::make_unique<Physics::LocomotionController>();
+        if (!_magicka) _magicka = std::make_unique<Physics::MagickaCost>();
         _scanner->Initialize();
         _controller->Initialize();
 
@@ -101,45 +80,30 @@ namespace WP::Core
         if (serialization)
         {
             serialization->SetUniqueID(kSerializationSignature);
-            serialization->SetSaveCallback([](SKSE::SerializationInterface* a_intfc)
-            {
+            serialization->SetSaveCallback([](SKSE::SerializationInterface* a_intfc) {
                 SaveAttachState(a_intfc, Service::Get().GetAttachState());
             });
-            serialization->SetLoadCallback([](SKSE::SerializationInterface* a_intfc)
-            {
+            serialization->SetLoadCallback([](SKSE::SerializationInterface* a_intfc) {
                 LoadAttachState(a_intfc, Service::Get().GetAttachState());
             });
-            SKSE::log::info("WallWalkService: Save/load callbacks registered");
         }
-
         SKSE::log::info("WallWalkService: Initialized");
     }
 
     void Service::OnDataLoaded()
     {
         SKSE::log::info("WallWalkService: Data loaded");
-
         auto* player = GetPlayer();
-        if (player)
-            SKSE::log::info("WallWalkService: Player detected");
-        else
-            SKSE::log::warn("WallWalkService: Player not found");
-
+        if (player) SKSE::log::info("WallWalkService: Player detected");
+        else SKSE::log::warn("WallWalkService: Player not found");
         Debug::DebugDraw::Get().SetEnabled(_settings.debugDraw);
-
-        // SKSE Menu Framework integration disabled - causes crashes with ImGui context
-        // UI::RegisterSKSEFrameworkMenu();
     }
 
-    RE::PlayerCharacter* Service::GetPlayer()
-    {
-        return RE::PlayerCharacter::GetSingleton();
-    }
+    RE::PlayerCharacter* Service::GetPlayer() { return RE::PlayerCharacter::GetSingleton(); }
 
     void Service::OnFrame(float deltaTime)
     {
         if (!_enabled) return;
-
         auto* player = GetPlayer();
         if (!player) return;
 
@@ -155,6 +119,7 @@ namespace WP::Core
         {
             if (Core::IsAttached(_attach.mode))
                 _controller->DetachToAir(player, _attach);
+            Animation::AnimationBridge::Get().PushState(player, _attach);
             return;
         }
 
@@ -162,6 +127,7 @@ namespace WP::Core
         {
             if (Core::IsAttached(_attach.mode))
                 _controller->DetachToAir(player, _attach);
+            Animation::AnimationBridge::Get().PushState(player, _attach);
             return;
         }
 
@@ -169,98 +135,42 @@ namespace WP::Core
         {
             if (Core::IsAttached(_attach.mode))
                 _controller->DetachToAir(player, _attach);
+            Animation::AnimationBridge::Get().PushState(player, _attach);
             return;
         }
 
         bool hasSurface = _scanner->Scan(player, _attach, _settings);
-
-        if (_settings.debugDraw)
-            Debug::DebugDraw::Get().DrawFrame(player, _attach, _scanner->GetPrimary());
 
         if (!Core::IsAttached(_attach.mode))
         {
             if (hasSurface)
             {
                 auto& candidate = _scanner->GetPrimary();
-                if (Core::IsWallOrCeiling(candidate))
-                {
-                    if (_magicka->CanAttach(player, _settings))
-                    {
-                        _controller->BeginAttach(player, _attach, candidate);
-                    }
-                }
+                if (Core::IsWallOrCeiling(candidate) && _magicka->CanAttach(player, _settings))
+                    _controller->BeginAttach(player, _attach, candidate);
             }
-            Animation::AnimationBridge::Get().PushState(player, _attach);
-            Camera::CameraMediator::Get().Update(player, _attach, deltaTime);
-            return;
         }
-
-        if (Core::IsAttached(_attach.mode))
+        else
         {
-            if (hasSurface)
-            {
-                _attach.noSurfaceTime = 0.0f;
-
-                auto& next = _scanner->GetPrimary();
-                if (next.valid && Core::IsWallOrCeiling(next))
-                {
-                    if (_attach.mode == Core::WallWalkMode::kAttachedWall && next.isCeiling)
-                    {
-                        _attach.mode = Core::WallWalkMode::kTransition;
-                    }
-                    else if (_attach.mode == Core::WallWalkMode::kAttachedCeiling && !next.isCeiling)
-                    {
-                        _attach.mode = Core::WallWalkMode::kTransition;
-                    }
-
-                    float dotNormals = _attach.primary.normalWS.Dot(next.normalWS);
-                    if (dotNormals < 0.9f && _attach.mode != Core::WallWalkMode::kTransition)
-                    {
-                        _attach.mode = Core::WallWalkMode::kTransition;
-                    }
-
-                    float blendSpeed = 5.0f;
-                    _attach.transitionAlpha += deltaTime * blendSpeed;
-                    if (_attach.transitionAlpha > 1.0f) _attach.transitionAlpha = 1.0f;
-
-                    RE::NiPoint3 blendedUp = _attach.primary.normalWS +
-                        (next.normalWS - _attach.primary.normalWS) * _attach.transitionAlpha;
-                    blendedUp.Unitize();
-                    _attach.desiredUpWS = blendedUp;
-                    _attach.desiredGravityWS = blendedUp * -1.0f;
-                    _attach.primary = next;
-
-                    if (_attach.transitionAlpha >= 1.0f)
-                    {
-                        if (_attach.mode == Core::WallWalkMode::kTransition)
-                            _attach.mode = next.isCeiling ?
-                                Core::WallWalkMode::kAttachedCeiling : Core::WallWalkMode::kAttachedWall;
-                    }
-                }
-            }
-            else
+            if (!hasSurface)
             {
                 _attach.noSurfaceTime += deltaTime;
                 if (_attach.noSurfaceTime > _settings.detachGraceTime)
-                {
-                    SKSE::log::info("WallWalkService: Lost surface for {:.2f}s, detaching", _attach.noSurfaceTime);
                     _controller->DetachToAir(player, _attach);
-                    Animation::AnimationBridge::Get().PushState(player, _attach);
-                    Camera::CameraMediator::Get().Update(player, _attach, deltaTime);
-                    return;
-                }
             }
-
-            _controller->Update(player, _attach, _settings, deltaTime);
-
-            if (!_magicka->Consume(player, _settings, deltaTime))
+            else
             {
-                _controller->DetachToAir(player, _attach);
+                _attach.noSurfaceTime = 0.0f;
             }
+            if (!_magicka->Consume(player, _settings, deltaTime))
+                _controller->DetachToAir(player, _attach);
         }
 
         Animation::AnimationBridge::Get().PushState(player, _attach);
         Camera::CameraMediator::Get().Update(player, _attach, deltaTime);
+
+        if (_settings.debugDraw)
+            Debug::DebugDraw::Get().DrawFrame(player, _attach, _scanner->GetPrimary());
     }
 
     void Service::OnInputEvent(std::uint32_t keyCode, bool pressed)
@@ -276,14 +186,12 @@ namespace WP::Core
         _magicka->Reset();
         SKSE::log::info("WallWalk mode {}", _attach.hotkeyArmed ? "ARMED" : "DISARMED");
         RE::SendHUDMessage::ShowHUDMessage(
-            _attach.hotkeyArmed ? "Wall Walk: ARMED" : "Wall Walk: DISARMED",
-            nullptr, true);
+            _attach.hotkeyArmed ? "Wall Walk: ARMED" : "Wall Walk: DISARMED", nullptr, true);
     }
 
     void Service::Enable(bool enabled)
     {
         _enabled = enabled;
         if (!enabled) _attach.hotkeyArmed = false;
-        SKSE::log::info("WallWalkService: {}", enabled ? "Enabled" : "Disabled");
     }
 }
